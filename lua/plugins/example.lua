@@ -153,15 +153,20 @@ return {
   },
 
   -- the opts function can also be used to change the default opts:
+
+  -- 重写 lualine 配置，去掉右下角的 LSP 提示
   {
     "nvim-lualine/lualine.nvim",
     event = "VeryLazy",
     opts = function(_, opts)
-      table.insert(opts.sections.lualine_x, {
-        function()
-          return "😄"
-        end,
-      })
+      -- 这里强制覆盖 lualine_x 部分
+      -- 原来的配置里包含了 LSP 状态，我们把它覆盖成只显示文件类型
+      opts.sections.lualine_x = {
+        "filetype", -- 只保留文件类型图标（如 Python 图标）
+        -- 如果你还想要文件编码，可以把下面这行的注释解开：
+        -- "encoding",
+        -- "fileformat",
+      }
     end,
   },
 
@@ -194,4 +199,17 @@ return {
       },
     },
   },
+
+  -- 在你的 return { ... } 列表里加入这个块
+  {
+    "folke/noice.nvim",
+    opts = {
+      lsp = {
+        progress = {
+          enabled = false, -- 这里设置为 false，彻底关闭右下角的加载进度提示
+        },
+      },
+    },
+  },
+
 }
