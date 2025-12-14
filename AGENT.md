@@ -32,3 +32,36 @@
   - 所有模式：执行 `:qa`
 
 > 终端若拦截 `Ctrl+s`（XON/XOFF 导致卡住/无响应），可在终端执行 `stty -ixon` 关闭流控。
+
+## 仓库远端（`origin` / `upstream`）与同步机制
+
+### 约定
+
+- 本地 Git 仓库可以配置多个远端（remote）。
+- `origin`：通常指“你要 push 的远端”（你的仓库）。
+- `upstream`：通常指“你要拉取更新的上游来源”（比如最初 clone 的 `LazyVim/starter`）。
+
+### 推荐设置（当前目录 `~/.config/nvim`）
+
+这个目录最初是从 `LazyVim/starter` clone 的，因此默认 `origin` 很可能指向 `LazyVim/starter`。
+为了把配置维护在你自己的仓库里，同时还能跟进上游更新，建议把：
+
+- `LazyVim/starter` 保留为 `upstream`
+- 你的仓库设为 `origin`
+
+示例命令（把 URL 换成你的）：
+
+```sh
+git remote rename origin upstream
+git remote add origin git@github.com:<you>/<repo>.git
+```
+
+### 日常工作流
+
+- 本地改动并提交：`git add -A && git commit -m "..."`（提交到本地 `main`）
+- 推送到你的仓库：`git push`（推到 `origin/main`）
+- 跟进上游更新：
+  - `git fetch upstream`
+  - 合并上游：`git merge upstream/main`（简单直观，会产生 merge commit）
+  - 或线性历史：`git rebase upstream/main`（历史更整洁，冲突时解决后继续 rebase）
+  - 完成后再 `git push` 推回 `origin`
