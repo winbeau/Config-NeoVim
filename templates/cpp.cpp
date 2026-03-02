@@ -5,8 +5,8 @@
 using namespace std;
 
 int32_t main() {
-  ios::sync_with_stdio(false);
-  cin.tie(nullptr);
+    ios::sync_with_stdio(false);
+    cin.tie(nullptr);
 
-  return 0;
+    return 0;
 }
