@@ -5,6 +5,12 @@
 -- Disable autoformat on save (use manual formatting instead)
 vim.g.autoformat = false
 
+-- Global indentation: 4 spaces
+vim.opt.tabstop = 4
+vim.opt.shiftwidth = 4
+vim.opt.softtabstop = 4
+vim.opt.expandtab = true
+
 -- Prefer a working tree-sitter CLI (>=0.25 when available) over Mason's binary.
 do
   local function parse_version(s)

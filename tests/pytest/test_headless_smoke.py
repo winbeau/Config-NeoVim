@@ -19,6 +19,7 @@ from conftest import assert_ok, run_cmd
         "lua/config/autocmds.lua",
         "lua/plugins/noice.lua",
         "lua/plugins/cpp.lua",
+        "lua/plugins/java.lua",
         "after/ftplugin/cpp.lua",
     ],
 )

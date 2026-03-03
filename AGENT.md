@@ -1,67 +1,132 @@
-# Neovim 配置排障记录（winbeau）
+# Neovim 配置运维说明（winbeau）
 
-## 现象 1：编辑 Python 时右下角不断弹出 `pyright`（最多 10 行）
+## 当前配置总览
 
-- 表现：在插入/编辑时，右下角会随着输入不断出现 `pyright` 相关提示，且高度最多 10 行。
-- 根因：来自 `folke/noice.nvim` 的 `view = "mini"`（默认 `views.mini.size.max_height = 10`），用于显示 LSP progress（包括 Pyright 的进度/消息）。
-- 修复：覆盖 Noice 的 `mini` 视图高度为 1 行。
-  - 配置已落地：`lua/plugins/noice.lua` 将 `opts.views.mini.size.max_height = 1`。
+- 基础框架：LazyVim（`lua/config/lazy.lua`）
+- Import 顺序：
+  1. `lazyvim.plugins`
+  2. `lazyvim.plugins.extras.lang.java`
+  3. `plugins`
+- 生效自定义插件文件：
+  - `lua/plugins/cpp.lua`
+  - `lua/plugins/noice.lua`
+  - `lua/plugins/java.lua`
+- 全局缩进：4 空格（`tabstop/shiftwidth/softtabstop=4`，`expandtab=true`）
 
-## 现象 2：启动时 `nvim-treesitter` 安装/编译多语言 parser 大量失败（ts/yaml/bash…），只成功少量（如 3/30）
+## 关键行为
 
-- 表现：启动或 `:TSUpdate` 时大量语言显示 `Downloading...` 后在 `Compiling parser` 阶段失败；最后提示 `Installed 3/30 languages`。
-- 关键报错：`/lib/x86_64-linux-gnu/libc.so.6: version 'GLIBC_2.39' not found ...`
-- 根因：`nvim-treesitter` 调用到的 `tree-sitter` CLI 是预编译二进制（来自 NVM 的全局 `tree-sitter-cli` 或 Mason 安装的 `tree-sitter-cli`），该二进制要求 `GLIBC_2.39`；本机系统为 `GLIBC 2.35`，导致 `tree-sitter build` 无法运行，从而所有 parser 编译失败。
-- 修复（已验证可用的做法）：
-  1. 安装兼容本机 GLIBC 的旧版 CLI：
-     - `npm install -g tree-sitter-cli@0.22.6`
-  2. 让 Neovim/LazyVim 使用这个可用的 `tree-sitter`：
-     - `ln -sf $(which tree-sitter) /home/winbeau/.local/share/nvim/mason/bin/tree-sitter`
-  3. 然后重新执行 `:TSUpdate` / 重启，让 parsers 重新安装。
+### Noice / 命令行
 
-## 备注
+- `:` 命令框当前使用 Noice cmdline（不是原生底栏）
+- 已配置：
+  - `opts.cmdline.enabled = true`
+  - `opts.presets.command_palette = true`
+  - `opts.presets.bottom_search = true`
+  - `opts.views.mini.size.max_height = 1`
+- 如果 Noice setup 失败，会回退到原生 cmdline 并给 warning
 
-- 仓库里 `lua/plugins/example.lua` 顶部有 `if true then return {} end`，该文件示例配置默认不会生效；实际生效的修复放在 `lua/plugins/noice.lua`。
+### Tree-sitter
 
-## 快捷键自定义
-
-- 保存全部：`Ctrl+s`
-  - Normal/Visual：执行 `:wa`
-  - Insert：保存后返回插入位置
-- 退出全部：`Ctrl+x`
-  - 所有模式：执行 `:qa`
-
-> 终端若拦截 `Ctrl+s`（XON/XOFF 导致卡住/无响应），可在终端执行 `stty -ixon` 关闭流控。
-
-## 仓库远端（`origin` / `upstream`）与同步机制
-
-### 约定
-
-- 本地 Git 仓库可以配置多个远端（remote）。
-- `origin`：通常指“你要 push 的远端”（你的仓库）。
-- `upstream`：通常指“你要拉取更新的上游来源”（比如最初 clone 的 `LazyVim/starter`）。
-
-### 推荐设置（当前目录 `~/.config/nvim`）
-
-这个目录最初是从 `LazyVim/starter` clone 的，因此默认 `origin` 很可能指向 `LazyVim/starter`。
-为了把配置维护在你自己的仓库里，同时还能跟进上游更新，建议把：
-
-- `LazyVim/starter` 保留为 `upstream`
-- 你的仓库设为 `origin`
-
-示例命令（把 URL 换成你的）：
+- 当前测试门禁要求：`tree-sitter-cli >= 0.25.0`（硬失败）
+- 推荐修复命令：
 
 ```sh
-git remote rename origin upstream
-git remote add origin git@github.com:<you>/<repo>.git
+cargo install --locked tree-sitter-cli --force
 ```
 
-### 日常工作流
+- 已配置优先策略：优先使用可用且较新的 host `tree-sitter`，避免命中 Mason 不兼容二进制
 
-- 本地改动并提交：`git add -A && git commit -m "..."`（提交到本地 `main`）
-- 推送到你的仓库：`git push`（推到 `origin/main`）
-- 跟进上游更新：
-  - `git fetch upstream`
-  - 合并上游：`git merge upstream/main`（简单直观，会产生 merge commit）
-  - 或线性历史：`git rebase upstream/main`（历史更整洁，冲突时解决后继续 rebase）
-  - 完成后再 `git push` 推回 `origin`
+### Java / jdtls
+
+- Java 语言支持来自 `lazyvim.plugins.extras.lang.java`
+- 本地覆盖在 `lua/plugins/java.lua`：
+  - 缺少 Java 21 时禁用 `nvim-jdtls`，避免反复 `exit code 1`
+  - 检测到 Java 21 时注入 `--java-executable <java21>`
+  - 基础纠错快捷键：
+    - `<leader>ca` code action
+    - `<leader>co` organize imports
+    - `<leader>cr` rename
+    - `<leader>cf` format
+- 关键前置：当前 jdtls 版本要求 Java 21
+- 安装建议（Ubuntu）：
+
+```sh
+sudo apt update
+sudo apt install -y openjdk-21-jdk
+```
+
+## 快捷键
+
+- `Ctrl+s`：保存全部
+  - Normal/Visual：`:wa`
+  - Insert：保存后回到插入位置
+- `Ctrl+x`：退出全部（`:qa`）
+- `Ctrl+f`：手动格式化（覆盖默认翻页）
+
+> 终端若拦截 `Ctrl+s`，执行：`stty -ixon`
+
+## 测试体系
+
+### Python（uv + pytest）
+
+```sh
+uv sync --dev
+uv run pytest
+```
+
+- 测试目录：`tests/pytest/`
+- 重点门禁：
+  - `nvim>=0.11`
+  - `python>=3.11`
+  - `pytest>=8`
+  - `tree-sitter>=0.25`（硬失败）
+
+### Lua（plenary）
+
+```sh
+XDG_STATE_HOME=/tmp XDG_CACHE_HOME=/tmp \
+nvim --headless \
+  -c "lua vim.opt.rtp:prepend(vim.fn.stdpath('data')..'/lazy/plenary.nvim'); require('plenary.test_harness').test_directory('tests/lua/spec', { minimal_init = 'tests/lua/minimal_init.lua' })" \
+  -c "qa"
+```
+
+- 测试目录：`tests/lua/spec/`
+
+### 一键脚本
+
+```sh
+./scripts/test.sh
+```
+
+- 顺序：`uv run pytest` -> plenary
+- 任一失败会返回非 0
+
+## 常见问题与定位
+
+### 1) `Client jdtls quit with exit code 1`
+
+- 根因通常是 Java 版本不满足（需要 21）
+- 定位：
+  - `:LspInfo`
+  - `:messages`
+  - 查看 `~/.local/state/nvim/lsp.log`
+- 修复：安装 Java 21 并重启 Neovim
+
+### 2) `:` 命令框不可见
+
+- 先确认 Noice 配置是否被改坏（`lua/plugins/noice.lua`）
+- 执行：`:Lazy reload noice.nvim`
+- 仍异常时查看：`~/.local/state/nvim/noice.log`
+
+### 3) Tree-sitter 安装/编译失败
+
+- 先看 `tree-sitter --version`
+- 低于 0.25 时先升级 CLI，再 `:TSUpdate`
+
+## 维护约定
+
+- 修改 `lua/plugins/*.lua` 或 `lua/config/*.lua` 时，必须同步更新对应测试断言
+- 提交前至少跑：
+  1. `uv run pytest`
+  2. Lua plenary 测试
+- 文档以本文件为准；配置变化后同步更新本文件
