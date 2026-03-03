@@ -72,3 +72,17 @@ git remote add origin git@github.com:<you>/<repo>.git
   - 合并上游：`git merge upstream/main`（简单直观，会产生 merge commit）
   - 或线性历史：`git rebase upstream/main`（历史更整洁，冲突时解决后继续 rebase）
   - 完成后再 `git push` 推回 `origin`
+
+## 本地测试（uv + pytest + plenary）
+
+```sh
+uv sync --dev
+uv run pytest
+nvim --headless -c "lua vim.opt.rtp:prepend(vim.fn.stdpath('data')..'/lazy/plenary.nvim'); require('plenary.test_harness').test_directory('tests/lua/spec', { minimal_init = 'tests/lua/minimal_init.lua' })" -c qa
+```
+
+也可使用一键脚本：
+
+```sh
+./scripts/test.sh
+```

@@ -1,0 +1,25 @@
+[project]
+name = "nvim-config-tests"
+version = "0.1.0"
+description = "Local tests for Neovim config contracts and runtime behavior."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = []
+
+[dependency-groups]
+dev = [
+  "packaging>=24.0",
+  "pytest>=8.0",
+  "pytest-xdist>=3.6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests/pytest"]
+addopts = "-ra -q"
+markers = [
+  "required: hard requirement gates",
+  "optional: soft requirement checks",
+  "env_gate: host tool and version checks",
+  "lua_contract: static lua config contracts",
+  "nvim_runtime: headless runtime checks",
+]

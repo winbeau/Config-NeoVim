@@ -29,6 +29,8 @@ return {
   {
     "mason-org/mason.nvim",
     opts = function(_, opts)
+      -- Keep system/NVM tools ahead of Mason binaries in PATH.
+      opts.PATH = "append"
       opts.ensure_installed = opts.ensure_installed or {}
       -- mason registry does not provide clang-tidy
       vim.list_extend(opts.ensure_installed, { "clangd", "clang-format" })
